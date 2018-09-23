@@ -1,24 +1,28 @@
 <?php
 /**
+ * layout_controller.php
+ * 
  * @package admin
- * @copyright Copyright 2003-2016 Zen Cart Development Team
+ * @copyright Copyright 2003-2011 Zen Cart Development Team
  * @copyright Portions Copyright 2003 osCommerce
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Author: DrByte  Sat Aug 1 18:01:55 2015 -0400 Modified in v1.5.5 $
+ * Altered by rbarbour (ZCAdditions.com), Responsive DIY Template Default for 1.5.x (65)
  */
 
   require('includes/application_top.php');
 
 // Check all existing boxes are in the main /sideboxes
   $boxes_directory = DIR_FS_CATALOG_MODULES . 'sideboxes/';
-  $boxes_directory_template = DIR_FS_CATALOG_MODULES . 'sideboxes/' . $template_dir . '/';
 
+  $file_extension = substr($PHP_SELF, strrpos($PHP_SELF, '.'));
   $directory_array = array();
   if ($dir = @dir($boxes_directory)) {
     while ($file = $dir->read()) {
       if (!is_dir($boxes_directory . $file)) {
-        if (preg_match('~^[^\._].*\.php$~i', $file) > 0) {
-          $directory_array[] = $file;
+        if (substr($file, strrpos($file, '.')) == $file_extension) {
+          if ($file != 'empty.txt') {
+            $directory_array[] = $file;
+          }
         }
       }
     }
@@ -28,22 +32,27 @@
     $dir->close();
   }
 
+// Check all exisiting boxes are in the current template /sideboxes/template_dir
   $dir_check= $directory_array;
+  $boxes_directory = DIR_FS_CATALOG_MODULES . 'sideboxes/' . $template_dir . '/';
 
-// Check all existing boxes are in the current template /sideboxes/template_dir
-  if ($dir = @dir($boxes_directory_template)) {
+  $file_extension = substr($PHP_SELF, strrpos($PHP_SELF, '.'));
+
+  if ($dir = @dir($boxes_directory)) {
     while ($file = $dir->read()) {
-      if (!is_dir($boxes_directory_template . $file)) {
-        if (!in_array($file, $dir_check, TRUE)) {
-          if (preg_match('~^[^\._].*\.php$~i', $file) > 0) {
-            $directory_array[] = $file;
+      if (!is_dir($boxes_directory . $file)) {
+          if (in_array($file, $dir_check, TRUE)) {
+            // skip name exists
+          } else {
+            if ($file != 'empty.txt') {
+              $directory_array[] = $file;
+            }
           }
-        }
       }
     }
+    sort($directory_array);
     $dir->close();
   }
-  sort($directory_array);
 
   $warning_new_box='';
   $installed_boxes = array();
@@ -59,9 +68,13 @@
         // skip ezpage sideboxes
 //        $warning_new_box .= $file . ' - HIDDEN ';
       }
+			
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)				
       $db->Execute("insert into " . TABLE_LAYOUT_BOXES . "
-                  (layout_template, layout_box_name, layout_box_status, layout_box_location, layout_box_sort_order, layout_box_sort_order_single, layout_box_status_single)
-                  values ('" . zen_db_input($template_dir) . "', '" . zen_db_input($file) . "', 0, 0, 0, 0, 0)");
+                  (layout_template, layout_box_name, layout_box_status, layout_box_location, layout_box_sort_order, layout_box_sort_order_single, layout_box_status_single, show_box_min_width)
+                  values ('" . zen_db_input($template_dir) . "', '" . zen_db_input($file) . "', 0, 0, 0, 0, 0, 0)");
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)										
+									
     }
   }
 
@@ -75,14 +88,27 @@
         $layout_box_sort_order = zen_db_prepare_input($_POST['layout_box_sort_order']);
         $layout_box_sort_order_single = zen_db_prepare_input($_POST['layout_box_sort_order_single']);
         $layout_box_status_single = zen_db_prepare_input($_POST['layout_box_status_single']);
+				
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)					
+        $show_box_min_width = zen_db_prepare_input($_POST['show_box_min_width']);
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)				
 
         $db->Execute("insert into " . TABLE_LAYOUT_BOXES . "
-                    (layout_box_name, layout_box_status, layout_box_location, layout_box_sort_order, layout_box_sort_order_single, layout_box_status_single)
+				
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)					
+                    (layout_box_name, layout_box_status, layout_box_location, layout_box_sort_order, layout_box_sort_order_single, show_box_min_width, layout_box_status_single)
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)										
+										
                     values ('" . zen_db_input($layout_box_name) . "',
                             '" . zen_db_input($layout_box_status) . "',
                             '" . zen_db_input($layout_box_location) . "',
                             '" . zen_db_input($layout_box_sort_order) . "',
                             '" . zen_db_input($layout_box_sort_order_single) . "',
+														
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)														
+                            '" . zen_db_input($show_box_min_width) . "',
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+										
                             '" . zen_db_input($layout_box_status_single) . "')");
 
         $messageStack->add_session(SUCCESS_BOX_ADDED . $_GET['layout_box_name'], 'success');
@@ -96,9 +122,12 @@
         $layout_box_sort_order = zen_db_prepare_input($_POST['layout_box_sort_order']);
         $layout_box_sort_order_single = zen_db_prepare_input($_POST['layout_box_sort_order_single']);
         $layout_box_status_single = zen_db_prepare_input($_POST['layout_box_status_single']);
-
-        $db->Execute("update " . TABLE_LAYOUT_BOXES . " set layout_box_status = '" . zen_db_input($layout_box_status) . "', layout_box_location = '" . zen_db_input($layout_box_location) . "', layout_box_sort_order = '" . zen_db_input($layout_box_sort_order) . "', layout_box_sort_order_single = '" . zen_db_input($layout_box_sort_order_single) . "', layout_box_status_single = '" . zen_db_input($layout_box_status_single) . "' where layout_id = '" . zen_db_input($box_id) . "'");
-
+				
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)				
+        $show_box_min_width = zen_db_prepare_input($_POST['show_box_min_width']);
+        $db->Execute("update " . TABLE_LAYOUT_BOXES . " set layout_box_status = '" . zen_db_input($layout_box_status) . "', layout_box_location = '" . zen_db_input($layout_box_location) . "', layout_box_sort_order = '" . zen_db_input($layout_box_sort_order) . "', layout_box_sort_order_single = '" . zen_db_input($layout_box_sort_order_single) . "', show_box_min_width = '" . zen_db_input($show_box_min_width) . "', layout_box_status_single = '" . zen_db_input($layout_box_status_single) . "' where layout_id = '" . zen_db_input($box_id) . "'");
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+				
         $messageStack->add_session(SUCCESS_BOX_UPDATED . $_GET['layout_box_name'], 'success');
         zen_redirect(zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page'] . '&cID=' . $box_id));
         break;
@@ -111,15 +140,18 @@
         zen_redirect(zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page']));
         break;
       case 'reset_defaults':
-        if ($_POST['action'] == 'reset_defaults') {
-          $reset_boxes = $db->Execute("select * from " . TABLE_LAYOUT_BOXES . " where layout_template= 'default_template_settings'");
-          while (!$reset_boxes->EOF) {
-            $db->Execute("update " . TABLE_LAYOUT_BOXES . " set layout_box_status= '" . $reset_boxes->fields['layout_box_status'] . "', layout_box_location= '" . $reset_boxes->fields['layout_box_location'] . "', layout_box_sort_order='" . $reset_boxes->fields['layout_box_sort_order'] . "', layout_box_sort_order_single='" . $reset_boxes->fields['layout_box_sort_order_single'] . "', layout_box_status_single='" . $reset_boxes->fields['layout_box_status_single'] . "' where layout_box_name='" . $reset_boxes->fields['layout_box_name'] . "' and layout_template='" . zen_db_input($template_dir) . "'");
-            $reset_boxes->MoveNext();
-          }
-          $messageStack->add_session(SUCCESS_BOX_RESET . $template_dir, 'success');
-          zen_redirect(zen_href_link(FILENAME_LAYOUT_CONTROLLER));
+        $reset_boxes = $db->Execute("select * from " . TABLE_LAYOUT_BOXES . " where layout_template= 'default_template_settings'");
+        while (!$reset_boxes->EOF) {
+				
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)					
+          $db->Execute("update " . TABLE_LAYOUT_BOXES . " set layout_box_status= '" . $reset_boxes->fields['layout_box_status'] . "', layout_box_location= '" . $reset_boxes->fields['layout_box_location'] . "', layout_box_sort_order='" . $reset_boxes->fields['layout_box_sort_order'] . "', layout_box_sort_order_single='" . $reset_boxes->fields['layout_box_sort_order_single'] . "', show_box_min_width='" . $reset_boxes->fields['show_box_min_width'] . "', layout_box_status_single='" . $reset_boxes->fields['layout_box_status_single'] . "' where layout_box_name='" . $reset_boxes->fields['layout_box_name'] . "' and layout_template='" . zen_db_input($template_dir) . "'");
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+				
+          $reset_boxes->MoveNext();
         }
+
+        $messageStack->add_session(SUCCESS_BOX_RESET . $template_dir, 'success');
+        zen_redirect(zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page']));
         break;
     }
   }
@@ -193,11 +225,22 @@ if ($warning_new_box) {
                 <td class="dataTableHeadingContent" align="center"><?php echo TABLE_HEADING_LAYOUT_BOX_SORT_ORDER; ?></td>
                 <td class="dataTableHeadingContent" align="center"><?php echo TABLE_HEADING_LAYOUT_BOX_SORT_ORDER_SINGLE; ?></td>
                 <td class="dataTableHeadingContent" align="center"><?php echo TABLE_HEADING_LAYOUT_BOX_STATUS_SINGLE; ?></td>
+								
+<?php // (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65) ?>				
+                <td class="dataTableHeadingContent" align="center"><font color="#0044cc"><?php echo 'Show Box @ Min-Width'; ?></font></td>
+<?php // (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65) ?>
+								
                 <td colspan="2" class="dataTableHeadingContent" align="center"><?php echo TABLE_HEADING_ACTION; ?>&nbsp;</td>
               </tr>
 
 <?php
-  $column_controller = $db->Execute("select layout_id, layout_box_name, layout_box_status, layout_box_location, layout_box_sort_order, layout_box_sort_order_single, layout_box_status_single from " . TABLE_LAYOUT_BOXES . " where (layout_template='" . zen_db_input($template_dir) . "' and layout_box_name NOT LIKE '%ezpages_bar%') order by  layout_box_location, layout_box_sort_order");
+  $boxes_directory = DIR_FS_CATALOG_MODULES . 'sideboxes' . '/';
+  $boxes_directory_template = DIR_FS_CATALOG_MODULES . 'sideboxes/' . $template_dir . '/';
+
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)	
+  $column_controller = $db->Execute("select layout_id, layout_box_name, layout_box_status, layout_box_location, layout_box_sort_order, layout_box_sort_order_single, layout_box_status_single, show_box_min_width from " . TABLE_LAYOUT_BOXES . " where (layout_template='" . zen_db_input($template_dir) . "' and layout_box_name NOT LIKE '%ezpages_bar%') order by  layout_box_location, layout_box_sort_order");
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+	
   while (!$column_controller->EOF) {
 //    if (((!$_GET['cID']) || (@$_GET['cID'] == $column_controller->fields['layout_id'])) && (!$bInfo) && (substr($_GET['action'], 0, 3) != 'new')) {
   if ((!isset($_GET['cID']) || (isset($_GET['cID']) && ($_GET['cID'] == $column_controller->fields['layout_id']))) && !isset($bInfo) && (substr($action, 0, 3) != 'new')) {
@@ -217,7 +260,11 @@ if ($warning_new_box) {
                 <td class="<?php echo ( (file_exists($boxes_directory . $column_controller->fields['layout_box_name']) or file_exists($boxes_directory_template . $column_controller->fields['layout_box_name'])) ? dataTableContent : messageStackError ); ?>" align="center"><?php echo $column_controller->fields['layout_box_sort_order']; ?></td>
                 <td class="<?php echo ( (file_exists($boxes_directory . $column_controller->fields['layout_box_name']) or file_exists($boxes_directory_template . $column_controller->fields['layout_box_name'])) ? dataTableContent : messageStackError ); ?>" align="center"><?php echo $column_controller->fields['layout_box_sort_order_single']; ?></td>
                 <td class="<?php echo ( (file_exists($boxes_directory . $column_controller->fields['layout_box_name']) or file_exists($boxes_directory_template . $column_controller->fields['layout_box_name'])) ? dataTableContent : messageStackError ); ?>" align="center"><?php echo ($column_controller->fields['layout_box_status_single']=='1' ? TEXT_ON : '<span class="alert">' . TEXT_OFF . '</span>'); ?></td>
-
+								
+<?php // (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65) ?>
+                <td class="<?php echo ( (file_exists($boxes_directory . $column_controller->fields['layout_box_name']) or file_exists($boxes_directory_template . $column_controller->fields['layout_box_name'])) ? dataTableContent : messageStackError ); ?>" align="center"><?php echo ($column_controller->fields['show_box_min_width']=='1' ? TEXT_ON : '<span class="alert">' . TEXT_OFF . '</span>'); ?></td>
+<?php // (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65) ?>
+								
                 <td class="dataTableContent" align="right"><?php echo ( (file_exists($boxes_directory . $column_controller->fields['layout_box_name']) or file_exists($boxes_directory_template . $column_controller->fields['layout_box_name'])) ? TEXT_GOOD_BOX : TEXT_BAD_BOX) ; ?><?php echo '<a href="' . zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page'] . '&cID=' . $column_controller->fields['layout_id'] . '&action=edit') . '">' . zen_image(DIR_WS_IMAGES . 'icon_edit.gif', IMAGE_EDIT) . '</a>'; ?></td>
 
                 <td class="dataTableContent" align="right"><?php echo ( (file_exists($boxes_directory . $column_controller->fields['layout_box_name']) or file_exists($boxes_directory_template . $column_controller->fields['layout_box_name'])) ? TEXT_GOOD_BOX : TEXT_BAD_BOX) ; ?><?php if ( (is_object($bInfo)) && ($column_controller->fields['layout_id'] == $bInfo->layout_id) ) { echo zen_image(DIR_WS_IMAGES . 'icon_arrow_right.gif', ''); } else { echo '<a href="' . zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page'] . '&cID=' . $column_controller->fields['layout_id']) . '">' . zen_image(DIR_WS_IMAGES . 'icon_info.gif', IMAGE_ICON_INFO) . '</a>'; } ?>&nbsp;</td>
@@ -256,6 +303,14 @@ if ($warning_new_box) {
       default: $layout_box_status_single_on = true; $layout_box_status_single_off = false;
     }
 
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+    switch ($bInfo->show_box_min_width) {
+      case '0': $show_box_min_width_on = false; $show_box_min_width_off = true; break;
+      case '1':
+      default: $show_box_min_width_on = true; $show_box_min_width_off = false;
+    }
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+
   switch ($_GET['action']) {
     case 'new':
       $heading[] = array('text' => '<b>' . TEXT_INFO_HEADING_NEW_BOX . '</b>');
@@ -268,6 +323,10 @@ if ($warning_new_box) {
       $contents[] = array('text' => '<br />' . TEXT_INFO_LAYOUT_BOX_SORT_ORDER . '<br />' . zen_draw_input_field('layout_box_sort_order'));
       $contents[] = array('text' => '<br />' . TEXT_INFO_LAYOUT_BOX_SORT_ORDER_SINGLE . '<br />' . zen_draw_input_field('layout_box_sort_order_single'));
       $contents[] = array('text' => '<br />' . TEXT_INFO_LAYOUT_BOX_STATUS_SINGLE . '<br />' . zen_draw_input_field('layout_box_status_single'));
+			
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+      $contents[] = array('text' => '<br />' . 'Show this Box @ Min-Width' . '<br />' . zen_draw_input_field('show_box_min_width'));
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
 
       $contents[] = array('align' => 'center', 'text' => '<br />' . zen_image_submit('button_insert.gif', IMAGE_INSERT) . '&nbsp;<a href="' . zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page']) . '">' . zen_image_button('button_cancel.gif', IMAGE_CANCEL) . '</a>');
       break;
@@ -287,6 +346,14 @@ if ($warning_new_box) {
         case '1': $in_status_single = true; $out_status_single = false; break;
         default: $in_status_single = true; $out_status_single = false;
       }
+			
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+      switch ($bInfo->show_box_min_width) {
+        case '0': $in_status_minwidth = false; $out_status_minwidth = true; break;
+        case '1': $in_status_minwidth = true; $out_status_minwidth = false; break;
+        default: $in_status_minwidth = true; $out_status_minwidth = false;
+      }
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
 
       $heading[] = array('text' => '<b>' . TEXT_INFO_HEADING_EDIT_BOX . '</b>');
 
@@ -298,6 +365,11 @@ if ($warning_new_box) {
       $contents[] = array('text' => '<br />' . TEXT_INFO_LAYOUT_BOX_SORT_ORDER . '<br />' . zen_draw_input_field('layout_box_sort_order', $bInfo->layout_box_sort_order,'size="4"'));
       $contents[] = array('text' => '<br />' . TEXT_INFO_LAYOUT_BOX_SORT_ORDER_SINGLE . '<br />' . zen_draw_input_field('layout_box_sort_order_single', $bInfo->layout_box_sort_order_single,'size="4"'));
       $contents[] = array('text' => '<br />' . TEXT_INFO_LAYOUT_BOX_STATUS_SINGLE . '<br />' . zen_draw_radio_field('layout_box_status_single', '1', $in_status_single) . TEXT_ON . zen_draw_radio_field('layout_box_status_single', '0', $out_status_single) . TEXT_OFF);
+
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+      $contents[] = array('text' => '<br />' . 'Show this Box @ Min-Width' . '<br />' . zen_draw_radio_field('show_box_min_width', '1', $in_status_minwidth) . TEXT_ON . zen_draw_radio_field('show_box_min_width', '0', $out_status_minwidth) . TEXT_OFF);
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+
       $contents[] = array('align' => 'center', 'text' => '<br />' . zen_image_submit('button_update.gif', IMAGE_UPDATE) . '&nbsp;<a href="' . zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page'] . '&cID=' . $bInfo->layout_id . '&layout_box_name=' . $bInfo->layout_box_name) . '">' . zen_image_button('button_cancel.gif', IMAGE_CANCEL) . '</a>');
       break;
     case 'delete':
@@ -318,6 +390,11 @@ if ($warning_new_box) {
         $contents[] = array('text' => TEXT_INFO_LAYOUT_BOX_LOCATION . ' ' . ($bInfo->layout_box_location=='0' ? TEXT_LEFT : TEXT_RIGHT) );
         $contents[] = array('text' => TEXT_INFO_LAYOUT_BOX_SORT_ORDER . ' ' . $bInfo->layout_box_sort_order);
         $contents[] = array('text' => TEXT_INFO_LAYOUT_BOX_SORT_ORDER_SINGLE . ' ' . $bInfo->layout_box_sort_order_single);
+				
+// (BOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+        $contents[] = array('text' => 'Show this Box @ Min-Width' . ' ' . $bInfo->show_box_min_width);
+// (EOF - 2.1) Responsive DIY Template Default for 1.5.x (65)
+				
         $contents[] = array('text' => TEXT_INFO_LAYOUT_BOX_STATUS_SINGLE . ' ' .  ($bInfo->layout_box_status_single=='1' ? TEXT_ON : TEXT_OFF) );
 
         if (!(file_exists($boxes_directory . $bInfo->layout_box_name) or file_exists($boxes_directory_template . $bInfo->layout_box_name))) {
@@ -353,10 +430,7 @@ if ($warning_new_box) {
       </tr>
       <tr>
         <td class="main" align="center">
-            <?php echo zen_draw_form('reset_defaults', FILENAME_LAYOUT_CONTROLLER, 'action=reset_defaults'); ?>
-            <?php echo zen_draw_hidden_field('action', 'reset_defaults'); ?>
-            <?php echo zen_image_submit('button_reset.gif', IMAGE_RESET) ?>
-            </form>
+          <?php echo '<br /><a href="' . zen_href_link(FILENAME_LAYOUT_CONTROLLER, 'page=' . $_GET['page'] . '&cID=' . $bInfo->layout_id . '&action=reset_defaults') . '">' . zen_image_button('button_reset.gif', IMAGE_RESET) . '</a>'; ?>
         </td>
       </tr>
     </table></td>
